@@ -62,7 +62,7 @@ python3 tests/smoke.py
 The checks use temporary libraries and cover persistence, metadata-to-save,
 refinement, Unicode, actual parallel overlap, and partial strategy failures.
 See [file responsibilities and a traced workflow](docs/WORKFLOW.md),
-[中文讲解](docs/讲解.md),
+[how the application works](docs/EXPLANATION.md),
 [interfaces](docs/INTERFACES.md), [metadata provenance](docs/CATALOG.md),
 and [demo operations and narration outline](docs/DEMO.md).
 

@@ -12,10 +12,14 @@ following the same three operations. No generated narration is included.
 3. **Recommend and save:** Keep the leisure interests, watch the three programs
    run, inspect a recommendation's reason, and save it to the want-to-read shelf.
 
-## 配音提纲
+## Narration outline
 
-用你自己的话简短解释这三点即可：
+Briefly explain these three points in your own words:
 
-- 这个书库服务于休闲阅读，可以保存阅读状态和评分；演示使用的是临时样例书库。
-- 添加书籍时先查元数据，再由你确认书名和作者，最后保存。
-- 三种推荐策略同时运行，合并结果后通过管道去重、排除已有书籍，并留下推荐理由；你可以选择保存。
+- The library is for leisure reading and tracks reading status and ratings.
+  The demonstration uses a temporary example library.
+- Adding a book starts with a metadata lookup. You confirm the title and author
+  before saving it.
+- Three recommendation strategies run concurrently. Their combined results
+  pass through a pipe to remove duplicates and books already in the library,
+  while retaining recommendation reasons. You can select a suggestion to save.
