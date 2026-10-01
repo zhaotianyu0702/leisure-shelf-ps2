@@ -33,8 +33,8 @@ library_json="$("$library" list | jq -s -c '.')"
     ] as $signals
   | ($signals | add // 0) as $raw
   | select($raw > 0)
-  | [if any($evidence[]; (.author|norm) == ($book.author|norm) and ($book.author|norm) != "") then "作者与已读或已保存书目相同" else empty end,
-     if any($evidence[]; .genre == $book.genre and ($book.genre // "") != "") then "题材与已读或已保存书目相同" else empty end,
-     if any($evidence[]; overlap(.subjects; $book.subjects) > 0) then "主题与已读或已保存书目相近" else empty end] as $why
-  | $book + {strategy:"history", score: ([$raw,10]|min), reason: ($why|unique|join("；"))}
+  | [if any($evidence[]; (.author|norm) == ($book.author|norm) and ($book.author|norm) != "") then "same author as saved books" else empty end,
+     if any($evidence[]; .genre == $book.genre and ($book.genre // "") != "") then "same genre as saved books" else empty end,
+     if any($evidence[]; overlap(.subjects; $book.subjects) > 0) then "similar subjects to saved books" else empty end] as $why
+  | $book + {strategy:"history", score: ([$raw,10]|min), reason: ($why|unique|join("; "))}
 '

@@ -57,7 +57,7 @@ jq -s -c --argjson existing "$existing" --argjson limit "$limit" '
   def strategies($x): ([$x.strategy] + ($x.strategies // [])) | map(select(. == "history" or . == "interests" or . == "discovery")) | unique;
   def merge_candidate($old; $new):
     (strategies($old) + strategies($new) | unique) as $strategies
-    | ([$old.reason, $new.reason] | map(select(type=="string" and length>0)) | unique | join("；")) as $reason
+    | ([$old.reason, $new.reason] | map(select(type=="string" and length>0)) | unique | join("; ")) as $reason
     | ([$old.score, $new.score] | max) as $best_score
     | (if $new.score > $old.score then $new else $old end) as $best_record
     | $best_record + {strategy:$best_record.strategy, strategies:$strategies,

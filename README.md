@@ -40,7 +40,7 @@ Default interests are novels, short stories, and travel; edit them in the
 recommendation screen or `book-manager/config/interests.txt`. History uses actual
 saved books and ratings, interests match genres and topics, and discovery explores
 other literary genres. The rule-based shortlist includes reasons and reserves a
-place for discovery. Metadata lookup uses the
+place for discovery. Metadata lookup uses English-edition titles from the
 [Open Library Search API](https://openlibrary.org/dev/docs/api/search), while
 recommendations use a bundled 21-book catalog with source links. Years are
 source-reported catalog metadata.

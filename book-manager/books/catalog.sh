@@ -43,13 +43,40 @@ emit_local_matches() {
 cache_path() {
     local query="$1" author="${2:-}" digest
     digest="$(printf '%s\n%s' "$query" "$author" | cksum | awk '{print $1}')"
-    printf '%s/openlibrary-%s.jsonl\n' "$BOOK_MANAGER_CACHE_DIR" "$digest"
+    printf '%s/openlibrary-en-%s.jsonl\n' "$BOOK_MANAGER_CACHE_DIR" "$digest"
 }
 
 emit_cached() {
     local file="$1"
     [ -f "$file" ] || return 1
-    jq -c 'select(type == "object" and (.id | strings) and (.title | strings))' "$file" 2>/dev/null
+    jq -c --slurpfile bundled "$CATALOG_FILE" '
+      def latin_display: test("^[\\p{Latin}\\p{M}0-9[:punct:][:space:]]+$");
+      . as $candidate |
+      (first($bundled[] | select(.id == $candidate.id)) // {}) as $known |
+      (if (($candidate.title // "") | latin_display | not) then ($known.title // "") else ($candidate.title // "") end) as $title |
+      (if (($candidate.author // "") | latin_display | not) then ($known.author // "") else ($candidate.author // "") end) as $author |
+      select(type == "object" and (.id | strings) and ($title | latin_display) and ($author | latin_display)) |
+      .title = $title | .author = $author | .subjects = []
+    ' "$file" 2>/dev/null
+}
+
+normalize_live() {
+    jq -c --arg collected "$1" --slurpfile bundled "$CATALOG_FILE" '
+      def latin_display: test("^[\\p{Latin}\\p{M}0-9[:punct:][:space:]]+$");
+      (.docs // [])[] |
+      select((.key // "") | test("^/works/OL[0-9]+W$")) |
+      . as $doc |
+      (first($bundled[] | select(.id == $doc.key)) // {}) as $known |
+      select(($doc.editions.docs[0].language // []) | index("eng")) |
+      (($doc.editions.docs[0].title // $doc.title // "")) as $api_title |
+      (if ($api_title | latin_display | not) then ($known.title // "") else $api_title end) as $title |
+      (($doc.author_name // []) | join("; ")) as $api_author |
+      (if ($api_author | latin_display | not) then ($known.author // "") else $api_author end) as $author |
+      select(($title | latin_display) and ($author | latin_display)) |
+      {id:$doc.key,title:$title,author:$author,genre:"",year:($doc.first_publish_year // null),
+       subjects:[],link:("https://openlibrary.org" + $doc.key),source:"Open Library Search API",
+       edition_count:($doc.edition_count // null),collected_at:$collected}
+    '
 }
 
 throttle_request() {
@@ -104,17 +131,10 @@ live_search() {
     collected="$(date +%Y-%m-%d)"
     if curl -fsS --connect-timeout 4 --max-time 12 --retry 0 -A "$USER_AGENT" \
         --get 'https://openlibrary.org/search.json' \
-        --data-urlencode "q=$api_query" \
-        --data-urlencode 'fields=key,title,author_name,first_publish_year,subject,edition_count' \
+        --data-urlencode "q=$api_query" --data-urlencode 'lang=en' \
+        --data-urlencode 'fields=key,title,author_name,first_publish_year,edition_count,editions,editions.key,editions.title,editions.language' \
         --data-urlencode 'limit=10' |
-        jq -c --arg collected "$collected" '
-          (.docs // [])[] |
-          select((.key // "") | test("^/works/OL[0-9]+W$")) |
-          {id:.key,title:(.title // ""),author:((.author_name // []) | join("; ")),genre:"",
-           year:(.first_publish_year // null),subjects:((.subject // [])[:12]),
-           link:("https://openlibrary.org" + .key),source:"Open Library Search API",
-           edition_count:(.edition_count // null),collected_at:$collected}
-        ' > "$tmp" 2>/dev/null; then
+        normalize_live "$collected" > "$tmp" 2>/dev/null; then
         # A broad query can recover localized titles that are not indexed under
         # the caller's exact title spelling (including Chinese queries).
         if [ ! -s "$tmp" ]; then
@@ -123,17 +143,10 @@ live_search() {
             throttle_request
             if ! curl -fsS --connect-timeout 4 --max-time 12 --retry 0 -A "$USER_AGENT" \
                 --get 'https://openlibrary.org/search.json' \
-                --data-urlencode "q=$broad_query" \
-                --data-urlencode 'fields=key,title,author_name,first_publish_year,subject,edition_count' \
+                --data-urlencode "q=$broad_query" --data-urlencode 'lang=en' \
+                --data-urlencode 'fields=key,title,author_name,first_publish_year,edition_count,editions,editions.key,editions.title,editions.language' \
                 --data-urlencode 'limit=10' |
-                jq -c --arg collected "$collected" '
-                  (.docs // [])[] |
-                  select((.key // "") | test("^/works/OL[0-9]+W$")) |
-                  {id:.key,title:(.title // ""),author:((.author_name // []) | join("; ")),genre:"",
-                   year:(.first_publish_year // null),subjects:((.subject // [])[:12]),
-                   link:("https://openlibrary.org" + .key),source:"Open Library Search API",
-                   edition_count:(.edition_count // null),collected_at:$collected}
-                ' > "$tmp" 2>/dev/null; then
+                normalize_live "$collected" > "$tmp" 2>/dev/null; then
                 rm -f "$tmp"
                 return 1
             fi
