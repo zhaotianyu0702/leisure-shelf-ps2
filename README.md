@@ -2,7 +2,7 @@
 
 A personal terminal book manager for leisure literature, built from Bash programs.
 
-[Watch the terminal demo](media/demo.mp4) — 90 seconds, currently silent.
+[Watch the terminal demo](media/demo.mp4) — 90 seconds, narrated in English.
 The recording uses a temporary example library.
 
 ## Run
